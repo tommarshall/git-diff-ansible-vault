@@ -1,0 +1,16 @@
+---
+sudo: required
+dist: trusty
+language: python
+python: "2.7"
+
+before_install:
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get -y install git
+  - pip install ansible
+  - make setup
+
+script:
+  - make test

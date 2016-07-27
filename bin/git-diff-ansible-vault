@@ -1,0 +1,304 @@
+#!/usr/bin/env bash
+
+#
+# git-diff-ansible-vault(1) - Shell script for git diff-ing ansible vaults.
+# Released under the MIT License.
+#
+# https://github.com/tommarshall/git-diff-ansible-vault
+#
+
+VERSION=0.1.0
+REVISION=
+PATH_SCOPE=
+VAULT_PASSWORD_FILE='./.vault-pass'
+VAULT_ONLY=0
+COLOR=
+VERBOSE=0
+GIT_CMD='git --no-pager'
+
+#
+# Output version.
+#
+
+version() {
+  echo "git-diff-ansible-vault $VERSION"
+}
+
+#
+# Output usage information.
+#
+
+usage() {
+  echo 'Usage: git-diff-ansible-vault [-r <revision>] [-p <path>] [options]'
+}
+
+#
+# Output help information.
+#
+
+help() {
+  usage
+  cat <<-EOF
+
+  Examples:
+    git-diff-ansible-vault
+
+    git-diff-ansible-vault -r master..some-branch -p path/to/dir
+
+    git-diff-ansible-vault --vault-password-file .vaultpass
+
+  Options:
+    -r, --revision <revision>          show diff for git revision, e.g. master..some-branch
+    -p, --path <path>                  restrict diff to path, e.g. support/config.yml
+        --vault-password-file <path>   vault password file path, defaults to .vault-pass
+        --vault-only                   restrict diff to vault files only
+        --color, --colour              turn on coloured output
+        --no-color, --no-colour        turn off coloured diff
+        --verbose                      display verbose output
+    -v, --version                      output program version
+    -h, --help                         output help information
+
+  For more information, see https://github.com/tommarshall/git-diff-ansible-vault
+
+EOF
+}
+
+#
+# Log with <msg> when verbose flag set.
+#
+
+log() {
+  test $VERBOSE -eq 1 && echo "[INFO] $@" 1>&2
+}
+
+#
+# Warn with <msg>.
+#
+
+warn() {
+  echo "[WARNING] $@" 1>&2
+}
+
+#
+# Abort with <msg>.
+#
+
+abort() {
+  delete_tmp_vault_password_file
+  test -z "$@" || echo "[ERROR] $@" 1>&2
+  exit 1
+}
+
+#
+# Ensure all dependencies are in place. Abort if not.
+#
+
+ensure_dependencies() {
+  command -v git > /dev/null
+  test $? -eq 0 || abort 'Unable to find git'
+
+  command -v ansible-vault > /dev/null
+  test $? -eq 0 || abort 'Unable to find ansible-vault'
+
+  ansible-vault --help 2> /dev/null | grep ^Usage | grep -qE '\[.*view.*\]'
+  test $? -eq 0 || abort 'Unable to find `ansible-vault view`. Ansible 1.8 or later required.'
+}
+
+#
+# Ensure we have git history. Abort if not.
+#
+
+ensure_git_repository() {
+  git rev-parse > /dev/null 2>&1
+  test $? -eq 0 || abort 'Not a git repository'
+}
+
+#
+# Ensure we have a password for ansible-vault.
+#
+
+ensure_vault_password() {
+  test -f $VAULT_PASSWORD_FILE || prompt_for_vault_password
+}
+
+#
+# Prompt user for vault password.
+#
+
+prompt_for_vault_password() {
+  read -s -p 'Vault Password: ' vault_password
+  printf '\n'
+  write_tmp_vault_password_file $vault_password
+}
+
+#
+# Check if <diff_output> is encrypted with ansible-vault.
+#
+
+is_vault() {
+  head -n 1 "$1" | grep -qE '^\$ANSIBLE_VAULT'
+}
+
+#
+# Set the --vault-password-file path.
+#
+
+set_vault_password_file_path() {
+  test -f $1 || abort "--vault-password-file not found: $1"
+  VAULT_PASSWORD_FILE=$1
+}
+
+#
+# Write vault password to temporary file.
+#
+
+write_tmp_vault_password_file() {
+  TMP_VAULT_PASSWORD_FILE=$(mktemp)
+  echo $1 > $TMP_VAULT_PASSWORD_FILE
+  set_vault_password_file_path $TMP_VAULT_PASSWORD_FILE
+}
+
+#
+# Delete vault password temporary file.
+#
+
+delete_tmp_vault_password_file() {
+  test -z $TMP_VAULT_PASSWORD_FILE || rm $TMP_VAULT_PASSWORD_FILE 2>/dev/null
+}
+
+#
+# Decrypt <file_contents> with ansible-vault.
+#
+
+decrypted_vault_contents() {
+  ansible-vault --vault-password-file="$VAULT_PASSWORD_FILE" view <( echo "$1" )
+  test $? -eq 0 || warn "Unable to open vault: $FILE_PATH"
+}
+
+#
+# Ensure the `colordiff` binary is available.
+#
+
+ensure_colordiff() {
+  command -v colordiff > /dev/null
+  test $? -eq 0 || abort '--color requires colordiff'
+}
+
+#
+# Check if the `colordiff` binary is available.
+#
+
+has_colordiff() {
+  command -v colordiff > /dev/null
+}
+
+#
+# Check if output is coloured.
+#
+
+is_color() {
+  [[ $COLOR == 'always' ]] || [[ $COLOR == 'auto' && -t 1 ]]
+}
+
+#
+# Wrap the `colordiff` binary. Fallback to `cat` if `colordiff` unavailable.
+#
+
+colordiff_wrap() {
+  if is_color && has_colordiff; then
+    colordiff
+  else
+    cat
+  fi
+}
+
+#
+# Set the default COLOR argument from the `git` default.
+#
+
+set_default_color() {
+  if [ -z $COLOR ]; then
+    COLOR=$(git config --get color.ui || echo 'auto')
+    if is_color && ! has_colordiff; then
+      warn "Default --color '$COLOR' requires colordiff"
+      COLOR='never'
+    fi
+  fi
+}
+
+#
+# The main event. Output a decrypted git diff.
+#
+
+git_diff_ansible_vault() {
+  log "REVISION: $REVISION"
+  log "PATH_SCOPE: $PATH_SCOPE"
+  log "VAULT_PASSWORD_FILE: $VAULT_PASSWORD_FILE"
+  log "VAULT_ONLY: $VAULT_ONLY"
+  log "COLOR: $COLOR"
+
+  for FILE_PATH in $($GIT_CMD diff --name-only $REVISION $PATH_SCOPE); do
+    if is_vault $FILE_PATH; then
+      log "$FILE_PATH is vault"
+      # extract the old revision encrypted file contents
+      local old=$($GIT_CMD diff $REVISION $FILE_PATH \
+        | grep -E '^-[^-]|\$ANSIBLE_VAULT' | sed -E 's/^([^- ]*)[- ]/\1/')
+
+      # extract the new revision encrypted file contents
+      local new=$($GIT_CMD diff $REVISION $FILE_PATH \
+        | grep -E '^\+[^\+]|\$ANSIBLE_VAULT' | sed -E 's/^([^+ ]*)[+ ]/\1/')
+
+      # print the diff heading from git diff so we get the real paths
+      $GIT_CMD -c color.ui=$COLOR diff $REVISION $FILE_PATH | head -n 4
+
+      # print the diff body from the opened vault diff
+      diff -u \
+        <( decrypted_vault_contents "$old" ) \
+        <( decrypted_vault_contents "$new" ) \
+        | tail -n +3 | colordiff_wrap
+    elif [ $VAULT_ONLY -eq 0 ]; then
+      log "$FILE_PATH is not vault"
+      $GIT_CMD -c color.ui=$COLOR diff $REVISION $FILE_PATH
+    fi
+  done
+}
+
+#
+# parse argv
+#
+
+while test $# -ne 0; do
+  ARG=$1; shift
+  case $ARG in
+    -r|--revision) REVISION=$1; shift ;;
+    -p|--path) PATH_SCOPE=$1; shift ;;
+    --vault-password-file) set_vault_password_file_path $1; shift ;;
+    --vault-only) VAULT_ONLY=1 ;;
+    --color|--colour) ensure_colordiff; COLOR='always' ;;
+    --no-color|--no-colour) COLOR='never' ;;
+    --verbose) VERBOSE=1 ;;
+    -v|--version) version; exit ;;
+    -h|--help) help; exit ;;
+    *)
+      echo "Unrecognised argument: $ARG" >&2
+      usage >&2
+      abort
+      ;;
+  esac
+done
+
+#
+# It's showtime.
+#
+
+ensure_dependencies
+
+ensure_git_repository
+
+ensure_vault_password
+
+set_default_color
+
+git_diff_ansible_vault
+
+delete_tmp_vault_password_file
