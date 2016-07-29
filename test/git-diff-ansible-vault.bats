@@ -19,19 +19,19 @@ teardown() {
   assert_success
   assert_output "$(cat <<EOF
 diff --git a/public.yml b/public.yml
-index 1f613c2..4e1e398 100644
+index 497da2b..bb68218 100644
 --- a/public.yml
 +++ b/public.yml
-@@ -6,3 +6,4 @@ fruits:
-   - Strawberry
+@@ -7,3 +7,4 @@ fruits:
    - Mango
    - Banana
+   - Pineapple
 +  - Peach
 diff --git a/vault.yml b/vault.yml
-index 5fd6cf8..6b45548 100644
+index ff6110d..f5b9bd7 100644
 --- a/vault.yml
 +++ b/vault.yml
-@@ -15,3 +15,4 @@
+@@ -16,3 +16,4 @@
      - lisp
      - fortran
      - erlang
@@ -74,10 +74,10 @@ EOF
   assert_success
   assert_output "$(cat <<EOF
 diff --git a/vault.yml b/vault.yml
-index 5fd6cf8..6b45548 100644
+index ff6110d..f5b9bd7 100644
 --- a/vault.yml
 +++ b/vault.yml
-@@ -15,3 +15,4 @@
+@@ -16,3 +16,4 @@
      - lisp
      - fortran
      - erlang
@@ -136,10 +136,10 @@ EOF
   assert_success
   assert_output "$(cat <<EOF
 diff --git a/vault.yml b/vault.yml
-index 5fd6cf8..6b45548 100644
+index ff6110d..f5b9bd7 100644
 --- a/vault.yml
 +++ b/vault.yml
-@@ -15,3 +15,4 @@
+@@ -16,3 +16,4 @@
      - lisp
      - fortran
      - erlang
