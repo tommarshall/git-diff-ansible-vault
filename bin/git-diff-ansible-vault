@@ -10,6 +10,7 @@
 VERSION=0.1.0
 REVISION=
 PATH_SCOPE=
+GIT_DIFF_ARGS=
 VAULT_PASSWORD_FILE='./.vault-pass'
 VAULT_ONLY=0
 COLOR=
@@ -50,6 +51,7 @@ help() {
   Options:
     -r, --revision <revision>          show diff for git revision, e.g. master..some-branch
     -p, --path <path>                  restrict diff to path, e.g. support/config.yml
+        --cached, --staged             show diff for staged changes
         --vault-password-file <path>   vault password file path, defaults to .vault-pass
         --vault-only                   restrict diff to vault files only
         --color, --colour              turn on coloured output
@@ -233,23 +235,24 @@ set_default_color() {
 git_diff_ansible_vault() {
   log "REVISION: $REVISION"
   log "PATH_SCOPE: $PATH_SCOPE"
+  log "GIT_DIFF_ARGS: $GIT_DIFF_ARGS"
   log "VAULT_PASSWORD_FILE: $VAULT_PASSWORD_FILE"
   log "VAULT_ONLY: $VAULT_ONLY"
   log "COLOR: $COLOR"
 
-  for FILE_PATH in $($GIT_CMD diff --name-only $REVISION $PATH_SCOPE); do
+  for FILE_PATH in $($GIT_CMD diff $GIT_DIFF_ARGS --name-only $REVISION $PATH_SCOPE); do
     if is_vault $FILE_PATH; then
       log "$FILE_PATH is vault"
       # extract the old revision encrypted file contents
-      local old=$($GIT_CMD diff $REVISION $FILE_PATH \
+      local old=$($GIT_CMD diff $GIT_DIFF_ARGS $REVISION $FILE_PATH \
         | grep -E '^-[^-]|\$ANSIBLE_VAULT' | sed -E 's/^([^- ]*)[- ]/\1/')
 
       # extract the new revision encrypted file contents
-      local new=$($GIT_CMD diff $REVISION $FILE_PATH \
+      local new=$($GIT_CMD diff $GIT_DIFF_ARGS $REVISION $FILE_PATH \
         | grep -E '^\+[^\+]|\$ANSIBLE_VAULT' | sed -E 's/^([^+ ]*)[+ ]/\1/')
 
       # print the diff heading from git diff so we get the real paths
-      $GIT_CMD -c color.ui=$COLOR diff $REVISION $FILE_PATH | head -n 4
+      $GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH | head -n 4
 
       # print the diff body from the opened vault diff
       diff -u \
@@ -258,7 +261,7 @@ git_diff_ansible_vault() {
         | tail -n +3 | colordiff_wrap
     elif [ $VAULT_ONLY -eq 0 ]; then
       log "$FILE_PATH is not vault"
-      $GIT_CMD -c color.ui=$COLOR diff $REVISION $FILE_PATH
+      $GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH
     fi
   done
 }
@@ -272,6 +275,7 @@ while test $# -ne 0; do
   case $ARG in
     -r|--revision) REVISION=$1; shift ;;
     -p|--path) PATH_SCOPE=$1; shift ;;
+    --cached|--staged) GIT_DIFF_ARGS="$GIT_DIFF_ARGS --cached" ;;
     --vault-password-file) set_vault_password_file_path $1; shift ;;
     --vault-only) VAULT_ONLY=1 ;;
     --color|--colour) ensure_colordiff; COLOR='always' ;;

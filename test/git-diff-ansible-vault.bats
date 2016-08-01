@@ -106,6 +106,36 @@ EOF
 )"
 }
 
+@test "with --staged shows all staged changes" {
+  run git diff-ansible-vault --staged
+  assert_success
+  echo "$output" > "$BATS_TEST_DIRNAME/../output.log"
+  assert_output "$(cat <<EOF
+diff --git a/public.yml b/public.yml
+index 1f613c2..497da2b 100644
+--- a/public.yml
++++ b/public.yml
+@@ -6,3 +6,4 @@ fruits:
+   - Strawberry
+   - Mango
+   - Banana
++  - Pineapple
+diff --git a/vault.yml b/vault.yml
+index 5fd6cf8..ff6110d 100644
+--- a/vault.yml
++++ b/vault.yml
+@@ -8,6 +8,7 @@
+     - perl
+     - pascal
+     - ruby
++    - go
+ - tabitha:
+   name: Tabitha Bitumen
+   job: Developer
+EOF
+)"
+}
+
 @test "without a git repository exits with an error" {
   cd /tmp && touch .vault-pass
   run git diff-ansible-vault

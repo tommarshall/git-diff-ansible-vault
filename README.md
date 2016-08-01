@@ -39,6 +39,7 @@ $ git diff-ansible-vault -h
 ```
     -r, --revision <revision>          show diff for git revision, e.g. master..some-branch
     -p, --path <path>                  restrict diff to path, e.g. support/config.yml
+        --cached, --staged             show diff for staged changes
         --vault-password-file <path>   vault password file path, defaults to .vault-pass
         --vault-only                   restrict diff to vault files only
         --color, --colour              turn on coloured output
