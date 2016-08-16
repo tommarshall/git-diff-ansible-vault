@@ -1,0 +1,64 @@
+# git-diff-ansible-vault(1) -- Diff ansible vault encrypted files in git history
+
+## SYNOPSIS
+
+git diff-ansible-vault [-r <revision>] [-p <path>] [options]
+
+<revision> is the git revision to diff. <path> is the file system path to
+scope the diff to.
+
+## DESCRIPTION
+
+Running `git diff` on files encrypted with ansible vault results in some pretty
+unhelpful output.
+
+`git diff-ansible-vault` is custom git command that detects files encrypted
+with ansible vault within the diff, and safely decrypts them to reveal the true
+changes.
+
+## EXAMPLES
+
+    $ git diff-ansible-vault
+
+    $ git diff-ansible-vault -r master..some-branch -p path/to/dir
+
+    $ git diff-ansible-vault --vault-password-file .vaultpass
+
+## OPTIONS
+
+  * `-r`, `--revision <revision>`:
+    Show diff for git revision, e.g. master..some-branch
+  * `-p`, `--path <path>`:
+    Restrict diff to path, e.g. support/config.yml
+  * `--cached`, `--staged`:
+    Show diff for staged changes
+  * `--no-pager`:
+    Do not pipe output into a pager
+  * `--vault-password-file <path>`:
+    Vault password file path, defaults to .vault-pass
+  * `--vault-only`:
+    Restrict diff to vault files only
+  * `--color`, `--colour`:
+    Turn on coloured output
+  * `--no-color`, `--no-colour`:
+    Turn off coloured diff
+  * `--verbose`:
+    Display verbose output
+  * `-v`, `--version`:
+    Output program version
+  * `-h`, `--help`:
+    Output help information
+
+## EXIT STATUS
+
+`git diff-ansible-vault` exits with a value of `0` if the diff is able to
+complete without error, and `1` if an error occurs.
+
+## COPYRIGHT
+
+Git Diff Ansible Vault is copyright (c) 2016, Tom Marshall. Released under the
+MIT license.
+
+## SEE ALSO
+
+`git-diff`(1)
