@@ -109,7 +109,6 @@ EOF
 @test "with --staged shows all staged changes" {
   run git diff-ansible-vault --staged
   assert_success
-  echo "$output" > "$BATS_TEST_DIRNAME/../output.log"
   assert_output "$(cat <<EOF
 diff --git a/public.yml b/public.yml
 index 1f613c2..497da2b 100644

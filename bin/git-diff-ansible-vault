@@ -7,15 +7,17 @@
 # https://github.com/tommarshall/git-diff-ansible-vault
 #
 
-VERSION=0.2.0
+VERSION=0.3.0
 REVISION=
 PATH_SCOPE=
 GIT_DIFF_ARGS=
+NO_PAGER=0
 VAULT_PASSWORD_FILE='./.vault-pass'
 VAULT_ONLY=0
 COLOR=
 VERBOSE=0
 GIT_CMD='git --no-pager'
+PAGER_CMD=
 
 #
 # Output version.
@@ -52,6 +54,7 @@ help() {
     -r, --revision <revision>          show diff for git revision, e.g. master..some-branch
     -p, --path <path>                  restrict diff to path, e.g. support/config.yml
         --cached, --staged             show diff for staged changes
+        --no-pager                     do not pipe output into a pager
         --vault-password-file <path>   vault password file path, defaults to .vault-pass
         --vault-only                   restrict diff to vault files only
         --color, --colour              turn on coloured output
@@ -178,6 +181,33 @@ decrypted_vault_contents() {
 }
 
 #
+# Check if output is paged.
+#
+
+is_paged() {
+  test -n "$PAGER_CMD" && [[ "$PAGER_CMD" != 'cat'* ]]
+}
+
+#
+# Set the default pager command and arguments.
+#
+
+set_default_pager() {
+  test $NO_PAGER -eq 1 && return 0;
+  # ref: https://github.com/git/git/blob/v2.9.2/pager.c#L43-L74
+  local default_pager=$GIT_PAGER
+  test -n "$default_pager" || default_pager=$(git config --global pager.diff)
+  test -n "$default_pager" || default_pager=$(git config --get core.pager)
+  test -n "$default_pager" || default_pager=$PAGER
+  case $default_pager in
+    '')    PAGER_CMD='less -FRX' ;;
+    less*) PAGER_CMD="$default_pager -FRX" ;;
+    lv*)   PAGER_CMD="$default_pager -c" ;;
+    *)     PAGER_CMD="$default_pager" ;;
+  esac
+}
+
+#
 # Ensure the `colordiff` binary is available.
 #
 
@@ -226,6 +256,7 @@ set_default_color() {
       COLOR='never'
     fi
   fi
+  log "DEFAULT_COLOR: $COLOR"
 }
 
 #
@@ -236,6 +267,7 @@ git_diff_ansible_vault() {
   log "REVISION: $REVISION"
   log "PATH_SCOPE: $PATH_SCOPE"
   log "GIT_DIFF_ARGS: $GIT_DIFF_ARGS"
+  log "PAGER_CMD: $PAGER_CMD"
   log "VAULT_PASSWORD_FILE: $VAULT_PASSWORD_FILE"
   log "VAULT_ONLY: $VAULT_ONLY"
   log "COLOR: $COLOR"
@@ -252,7 +284,7 @@ git_diff_ansible_vault() {
         | grep -E '^\+[^\+]|\$ANSIBLE_VAULT' | sed -E 's/^([^+ ]*)[+ ]/\1/')
 
       # print the diff heading from git diff so we get the real paths
-      $GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH | head -n 4
+      echo "$($GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH)" | head -n 4
 
       # print the diff body from the opened vault diff
       diff -u \
@@ -276,6 +308,7 @@ while test $# -ne 0; do
     -r|--revision) REVISION=$1; shift ;;
     -p|--path) PATH_SCOPE=$1; shift ;;
     --cached|--staged) GIT_DIFF_ARGS="$GIT_DIFF_ARGS --cached" ;;
+    --no-pager) NO_PAGER=1 ;;
     --vault-password-file) set_vault_password_file_path $1; shift ;;
     --vault-only) VAULT_ONLY=1 ;;
     --color|--colour) ensure_colordiff; COLOR='always' ;;
@@ -301,8 +334,15 @@ ensure_git_repository
 
 ensure_vault_password
 
+set_default_pager
+
 set_default_color
 
-git_diff_ansible_vault
+if is_paged && [ -t 1 ]; then
+  test "$COLOR" == 'auto' && COLOR='always'
+  git_diff_ansible_vault | eval "$PAGER_CMD"
+else
+  git_diff_ansible_vault
+fi
 
 delete_tmp_vault_password_file
