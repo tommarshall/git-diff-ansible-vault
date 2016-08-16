@@ -252,7 +252,7 @@ git_diff_ansible_vault() {
         | grep -E '^\+[^\+]|\$ANSIBLE_VAULT' | sed -E 's/^([^+ ]*)[+ ]/\1/')
 
       # print the diff heading from git diff so we get the real paths
-      $GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH | head -n 4
+      echo "$($GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH)" | head -n 4
 
       # print the diff body from the opened vault diff
       diff -u \
