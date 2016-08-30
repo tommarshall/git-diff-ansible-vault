@@ -250,7 +250,7 @@ colordiff_wrap() {
 
 set_default_color() {
   if [ -z $COLOR ]; then
-    COLOR=$(git config --get color.ui || echo 'auto')
+    COLOR=$(git config --get color.diff || git config --get color.ui || echo 'auto')
     if is_color && ! has_colordiff; then
       warn "Default --color '$COLOR' requires colordiff"
       COLOR='never'
