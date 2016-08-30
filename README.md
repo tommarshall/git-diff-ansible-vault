@@ -6,7 +6,7 @@ Running `git diff` on files encrypted with ansible vault results in some pretty 
 
 `git-diff-ansible-vault` is custom git utility that detects files encrypted with ansible vault within the diff, and safely decrypts them to reveal the true changes.
 
-![git-diff-ansible-vault animated demo](https://github.com/tommarshall/git-diff-ansible-vault/blob/master/img/demo.gif)
+![git-diff-ansible-vault animated demo](https://github.com/tommarshall/git-diff-ansible-vault/blob/master/demo.gif)
 
 ## Installation
 
