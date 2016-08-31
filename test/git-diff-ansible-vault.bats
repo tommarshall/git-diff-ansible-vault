@@ -1,18 +1,8 @@
 #!/usr/bin/env bats
 
+load ../vendor/bats-support/load
+load ../vendor/bats-assert/load
 load test_helper
-
-# cd to fixture and move the git dir out of the shadows
-setup() {
-  cd "$BATS_TEST_DIRNAME/fixture/repo.git"
-  mv "git" ".git"
-}
-
-# hide the git dir in the fixture, so we don't have to use submodules
-teardown() {
-  cd "$BATS_TEST_DIRNAME/fixture/repo.git"
-  mv ".git" "git"
-}
 
 @test "without --revision or --path shows all work-in-progress changes" {
   run git diff-ansible-vault

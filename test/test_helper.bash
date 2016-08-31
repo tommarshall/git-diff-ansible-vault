@@ -3,53 +3,25 @@
 PATH="${BATS_TEST_DIRNAME}/../bin:$PATH"
 export PATH
 
-flunk() {
-	echo "$@"
-  return 1
+# Remember where the hook is
+BASE_DIR=$(dirname $BATS_TEST_DIRNAME)
+# Set up a directory for our git repo
+TMP_DIRECTORY=$(mktemp -d)
+
+setup() {
+  # copy the test fixture and move the git dir out of the shadows
+  cp -r "$BATS_TEST_DIRNAME/fixture/repo.git" "$TMP_DIRECTORY"
+  mv "$TMP_DIRECTORY/repo.git/git" "$TMP_DIRECTORY/repo.git/.git"
+  cd "$TMP_DIRECTORY/repo.git"
 }
 
-assert_success() {
-  if [ "$status" -ne 0 ]; then
-    flunk "command failed with exit status $status"
-  elif [ "$#" -gt 0 ]; then
-    assert_output "$1"
-  fi
-}
-
-assert_failure() {
-  if [ "$status" -eq 0 ]; then
-    flunk "expected failed exit status"
-  elif [ "$#" -gt 0 ]; then
-    assert_output "$1"
-  fi
-}
-
-assert_equal() {
-  if [ "$1" != "$2" ]; then
-    { echo "expected: $1"
-      echo "actual:   $2"
-    } | flunk
-  fi
-}
-
-assert_output() {
-  local expected
-  if [ $# -eq 0 ]; then
-    expected="$(cat -)"
+teardown() {
+  if [ $BATS_TEST_COMPLETED ]; then
+    echo "Deleting $TMP_DIRECTORY"
+    rm -rf $TMP_DIRECTORY
   else
-    expected="$1"
+    echo "** Did not delete $TMP_DIRECTORY, as test failed **"
   fi
-  assert_equal "$expected" "$output"
-}
 
-assert_line() {
-  if [ "$1" -ge 0 ] 2>/dev/null; then
-    assert_equal "$2" "${lines[$1]}"
-  else
-    local line
-    for line in "${lines[@]}"; do
-      if [ "$line" = "$1" ]; then return 0; fi
-    done
-    flunk "expected line \`$1'"
-  fi
+  cd $BATS_TEST_DIRNAME
 }
