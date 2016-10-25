@@ -139,6 +139,14 @@ EOF
   assert_line "+    - bash"
 }
 
+@test "--vault-password-file with specified script unlocks vault" {
+  run git diff-ansible-vault --vault-password-file .vault-pass-script --verbose
+  assert_success
+  assert_line "[INFO] VAULT_PASSWORD_FILE: .vault-pass-script"
+  assert_line "diff --git a/vault.yml b/vault.yml"
+  assert_line "+    - bash"
+}
+
 @test "--vault-password-file with non-existant path exits with error" {
   run git diff-ansible-vault --vault-password-file .not-a-file
   assert_failure "[ERROR] --vault-password-file not found: .not-a-file"
