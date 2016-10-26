@@ -131,6 +131,14 @@ EOF
   assert_failure "[ERROR] Not a git repository"
 }
 
+@test "Setting vault password file via environment variable unlocks vault" {
+  ANSIBLE_VAULT_PASSWORD_FILE=.alternate-vault-pass run git diff-ansible-vault --verbose
+  assert_success
+  assert_line "[INFO] VAULT_PASSWORD_FILE: .alternate-vault-pass"
+  assert_line "diff --git a/vault.yml b/vault.yml"
+  assert_line "+    - bash"
+}
+
 @test "--vault-password-file with specified path unlocks vault" {
   run git diff-ansible-vault --vault-password-file .alternate-vault-pass --verbose
   assert_success

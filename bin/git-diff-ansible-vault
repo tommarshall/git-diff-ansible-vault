@@ -299,6 +299,14 @@ git_diff_ansible_vault() {
 }
 
 #
+# Read environment variables.
+#
+
+if [ -f "$ANSIBLE_VAULT_PASSWORD_FILE" ]; then
+  VAULT_PASSWORD_FILE="$ANSIBLE_VAULT_PASSWORD_FILE"
+fi
+
+#
 # parse argv
 #
 
