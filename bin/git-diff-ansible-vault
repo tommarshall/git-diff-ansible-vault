@@ -16,6 +16,7 @@ VAULT_PASSWORD_FILE='./.vault-pass'
 VAULT_ONLY=0
 COLOR=
 VERBOSE=0
+SIDE_BY_SIDE=0
 GIT_CMD='git --no-pager'
 PAGER_CMD=
 
@@ -59,6 +60,7 @@ help() {
         --vault-only                   restrict diff to vault files only
         --color, --colour              turn on coloured output
         --no-color, --no-colour        turn off coloured diff
+        --side-by-side                 side-by-side diff output instead of unified
         --verbose                      display verbose output
     -v, --version                      output program version
     -h, --help                         output help information
@@ -286,8 +288,15 @@ git_diff_ansible_vault() {
       # print the diff heading from git diff so we get the real paths
       echo "$($GIT_CMD -c color.ui=$COLOR diff $GIT_DIFF_ARGS $REVISION $FILE_PATH)" | head -n 4
 
+      # set the diff type (unified is default)
+      if [[ $SIDE_BY_SIDE -eq 1 ]]; then
+        local difftype="-y"
+      else
+        local difftype="-u"
+      fi
+
       # print the diff body from the opened vault diff
-      diff -u \
+      diff $difftype \
         <( decrypted_vault_contents "$old" ) \
         <( decrypted_vault_contents "$new" ) \
         | tail -n +3 | colordiff_wrap
@@ -314,6 +323,7 @@ while test $# -ne 0; do
     --color|--colour) ensure_colordiff; COLOR='always' ;;
     --no-color|--no-colour) COLOR='never' ;;
     --verbose) VERBOSE=1 ;;
+    --side-by-side) SIDE_BY_SIDE=1 ;;
     -v|--version) version; exit ;;
     -h|--help) help; exit ;;
     *)
