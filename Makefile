@@ -2,6 +2,7 @@ PREFIX ?= /usr/local
 
 install: bin/git-diff-ansible-vault
 	@cp -p $< $(PREFIX)/$<
+	@mkdir -p $(PREFIX)/share/man/man1/
 	@cp -p man/git-diff-ansible-vault.1 $(PREFIX)/share/man/man1/
 
 uninstall:
