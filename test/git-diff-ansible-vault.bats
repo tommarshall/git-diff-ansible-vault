@@ -59,6 +59,42 @@ EOF
 )"
 }
 
+@test "with --side-by-side shows expected output format" {
+  run git diff-ansible-vault -r b479719..c54076a --side-by-side
+  assert_success
+  assert_output "$(cat <<EOF
+diff --git a/public.yml b/public.yml
+index 970074c..1f613c2 100644
+--- a/public.yml
++++ b/public.yml
+@@ -5,3 +5,4 @@ fruits:
+   - Orange
+   - Strawberry
+   - Mango
++  - Banana
+diff --git a/vault.yml b/vault.yml
+index 2e972c1..5fd6cf8 100644
+--- a/vault.yml
++++ b/vault.yml
+- martin:							- martin:
+  name: Martin D'vloper						  name: Martin D'vloper
+  job: Developer						  job: Developer
+  skills:							  skills:
+    - python							    - python
+    - perl							    - perl
+    - pascal							    - pascal
+							      >	    - ruby
+- tabitha:							- tabitha:
+  name: Tabitha Bitumen						  name: Tabitha Bitumen
+  job: Developer						  job: Developer
+  skills:							  skills:
+    - lisp							    - lisp
+    - fortran							    - fortran
+    - erlang							    - erlang
+EOF
+)"
+}
+
 @test "with --path shows work-in-progress changes for that path only" {
   run git diff-ansible-vault -p vault.yml
   assert_success
