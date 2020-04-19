@@ -105,7 +105,7 @@ ensure_dependencies() {
   command -v ansible-vault > /dev/null
   test $? -eq 0 || abort 'Unable to find ansible-vault'
 
-  ansible-vault --help 2> /dev/null | grep ^Usage | grep -qE '\[.*view.*\]'
+  ansible-vault --help 2> /dev/null | grep -qE '\bview\b'
   test $? -eq 0 || abort 'Unable to find `ansible-vault view`. Ansible 1.8 or later required.'
 }
 
