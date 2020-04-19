@@ -105,7 +105,7 @@ ensure_dependencies() {
   command -v ansible-vault > /dev/null
   test $? -eq 0 || abort 'Unable to find ansible-vault'
 
-  ansible-vault --help 2> /dev/null | grep ^Usage | grep -qE '\[.*view.*\]'
+  ansible-vault --help 2> /dev/null | grep -qE '\bview\b'
   test $? -eq 0 || abort 'Unable to find `ansible-vault view`. Ansible 1.8 or later required.'
 }
 
@@ -176,7 +176,7 @@ delete_tmp_vault_password_file() {
 #
 
 decrypted_vault_contents() {
-  ansible-vault --vault-password-file="$VAULT_PASSWORD_FILE" view <( echo "$1" )
+  ansible-vault view --vault-password-file="$VAULT_PASSWORD_FILE" <( echo "$1" )
   test $? -eq 0 || warn "Unable to open vault: $FILE_PATH"
 }
 
