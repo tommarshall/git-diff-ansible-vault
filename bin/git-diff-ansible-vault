@@ -176,7 +176,7 @@ delete_tmp_vault_password_file() {
 #
 
 decrypted_vault_contents() {
-  ansible-vault --vault-password-file="$VAULT_PASSWORD_FILE" view <( echo "$1" )
+  ansible-vault view --vault-password-file="$VAULT_PASSWORD_FILE" <( echo "$1" )
   test $? -eq 0 || warn "Unable to open vault: $FILE_PATH"
 }
 
